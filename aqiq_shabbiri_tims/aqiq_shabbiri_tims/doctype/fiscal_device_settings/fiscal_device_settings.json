@@ -1,0 +1,101 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-11-27 10:58:40.954384",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "device_settings_section",
+  "enable_device",
+  "device_ip",
+  "column_break_rfyg",
+  "port",
+  "control_unit_settings_section",
+  "control_unit_serial",
+  "column_break_dtuy",
+  "control_unit_pin",
+  "vat_settings_section",
+  "vat_rates"
+ ],
+ "fields": [
+  {
+   "fieldname": "device_settings_section",
+   "fieldtype": "Section Break",
+   "label": "Device Settings"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_device",
+   "fieldtype": "Check",
+   "label": "Enable Device"
+  },
+  {
+   "fieldname": "device_ip",
+   "fieldtype": "Data",
+   "label": "Device IP"
+  },
+  {
+   "fieldname": "column_break_rfyg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "4444",
+   "fieldname": "port",
+   "fieldtype": "Int",
+   "label": "Port"
+  },
+  {
+   "fieldname": "control_unit_settings_section",
+   "fieldtype": "Section Break",
+   "label": "Control Unit Settings"
+  },
+  {
+   "fieldname": "control_unit_serial",
+   "fieldtype": "Data",
+   "label": "Control Unit Serial"
+  },
+  {
+   "fieldname": "column_break_dtuy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "control_unit_pin",
+   "fieldtype": "Data",
+   "label": "Control Unit PIN"
+  },
+  {
+   "fieldname": "vat_settings_section",
+   "fieldtype": "Section Break",
+   "label": "VAT Settings"
+  },
+  {
+   "fieldname": "vat_rates",
+   "fieldtype": "Table",
+   "label": "VAT Rates",
+   "options": "Fiscal VAT Rate"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2024-11-27 11:11:17.645759",
+ "modified_by": "Administrator",
+ "module": "AQIQ Shabbiri TIMS",
+ "name": "Fiscal Device Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -122,13 +122,11 @@ app_license = "mit"
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+    "Sales Invoice": {        
+        "on_submit": "aqiq_shabbiri_tims.custom.sales_invoice.on_submit"
+    }
+}
 
 # Scheduled Tasks
 # ---------------
@@ -226,4 +224,34 @@ app_license = "mit"
 # default_log_clearing_doctypes = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
+
+# Fixtures for custom fields
+fixtures = [
+    {
+        "doctype": "Custom Field",
+        "filters": [
+            [
+                "name",
+                "in",
+                [
+                    "Sales Invoice-custom_is_fiscalized",
+                    "Sales Invoice-custom_fiscal_invoice_number",
+                    "Sales Invoice-custom_fiscal_verification_url",
+                    "Sales Invoice-custom_tax_exemption_id",
+                    "Fiscal Device Settings-debug_mode"
+                ]
+            ]
+        ]
+    }
+]
+
+# Scheduled task to retry failed fiscalizations
+scheduler_events = {
+    "cron": {
+        "*/15 * * * *": [  # Every 15 minutes
+            "aqiq_shabbiri_tims.utils.fiscal_queue.process_failed_queue"
+        ]
+    }
+}
+
 

@@ -1,0 +1,44 @@
+{
+    "name": "Fiscal Queue",
+    "module": "AQIQ Shabbiri TIMS",
+    "fields": [
+        {
+            "fieldname": "invoice",
+            "label": "Invoice",
+            "fieldtype": "Link",
+            "options": "Sales Invoice",
+            "reqd": 1
+        },
+        {
+            "fieldname": "status",
+            "label": "Status",
+            "fieldtype": "Select",
+            "options": "Queued\nProcessing\nCompleted\nFailed",
+            "default": "Queued"
+        },
+        {
+            "fieldname": "retry_count",
+            "label": "Retry Count",
+            "fieldtype": "Int",
+            "default": "0"
+        },
+        {
+            "fieldname": "error",
+            "label": "Error",
+            "fieldtype": "Long Text",
+            "read_only": 1
+        },
+        {
+            "fieldname": "response",
+            "label": "Response",
+            "fieldtype": "Code",
+            "read_only": 1
+        },
+        {
+            "fieldname": "completion_time",
+            "label": "Completion Time",
+            "fieldtype": "Datetime",
+            "read_only": 1
+        }
+    ]
+} 
