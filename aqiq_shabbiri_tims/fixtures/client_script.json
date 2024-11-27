@@ -1,0 +1,13 @@
+[
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Sales Invoice",
+  "enabled": 1,
+  "modified": "2024-11-27 12:47:42.095041",
+  "module": "AQIQ Shabbiri TIMS",
+  "name": "Sales Invoice",
+  "script": "frappe.ui.form.on('Sales Invoice', {\r\n    refresh: function(frm) {\r\n        // Only show for submitted documents that aren't fiscalized\r\n        if (frm.doc.docstatus === 1 && !frm.doc.is_fiscalized) {\r\n            frm.add_custom_button(__('Send to KRA'), function() {\r\n                fiscalize_invoice(frm);\r\n            }, __('Fiscal Device'));\r\n        }\r\n    }\r\n});\r\n\r\nfunction fiscalize_invoice(frm) {\r\n    frappe.call({\r\n        method: 'aqiq_shabbiri_tims.aqiq_shabbiri_tims.custom.sales_invoice.fiscalize_submitted_invoice',\r\n        args: {\r\n            'invoice_name': frm.doc.name\r\n        },\r\n        freeze: true,\r\n        freeze_message: __('Fiscalizing Invoice...'),\r\n        callback: function(r) {\r\n            if (r.message && r.message.success) {\r\n                frappe.show_alert({\r\n                    message: __('Invoice fiscalized successfully'),\r\n                    indicator: 'green'\r\n                });\r\n                frm.reload_doc();\r\n            }\r\n        }\r\n    });\r\n} ",
+  "view": "Form"
+ }
+]

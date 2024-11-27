@@ -6,10 +6,11 @@
  "engine": "InnoDB",
  "field_order": [
   "device_settings_section",
-  "enable_device",
   "device_ip",
-  "column_break_rfyg",
   "port",
+  "column_break_rfyg",
+  "enable_device",
+  "debug_mode",
   "control_unit_settings_section",
   "control_unit_serial",
   "column_break_dtuy",
@@ -73,12 +74,19 @@
    "fieldtype": "Table",
    "label": "VAT Rates",
    "options": "Fiscal VAT Rate"
+  },
+  {
+   "default": "0",
+   "description": "Enable to see detailed error messages",
+   "fieldname": "debug_mode",
+   "fieldtype": "Check",
+   "label": "Debug Mode"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-11-27 11:11:17.645759",
+ "modified": "2024-11-27 14:36:52.271633",
  "modified_by": "Administrator",
  "module": "AQIQ Shabbiri TIMS",
  "name": "Fiscal Device Settings",

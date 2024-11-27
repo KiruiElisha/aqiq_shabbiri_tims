@@ -225,7 +225,7 @@ doc_events = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
 
-# Fixtures for custom fields
+# Fixtures for custom fields and client script
 fixtures = [
     {
         "doctype": "Custom Field",
@@ -237,9 +237,18 @@ fixtures = [
                     "Sales Invoice-custom_is_fiscalized",
                     "Sales Invoice-custom_fiscal_invoice_number",
                     "Sales Invoice-custom_fiscal_verification_url",
-                    "Sales Invoice-custom_tax_exemption_id",
-                    "Fiscal Device Settings-debug_mode"
+                    "Sales Invoice-custom_tax_exemption_id"                    
                 ]
+            ]
+        ]
+    },
+    {
+        "doctype": "Client Script",
+        "filters": [
+            [
+                "dt",
+                "=",
+                "Sales Invoice"
             ]
         ]
     }

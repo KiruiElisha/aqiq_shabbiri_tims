@@ -1,44 +1,79 @@
 {
-    "name": "Fiscal Queue",
-    "module": "AQIQ Shabbiri TIMS",
-    "fields": [
-        {
-            "fieldname": "invoice",
-            "label": "Invoice",
-            "fieldtype": "Link",
-            "options": "Sales Invoice",
-            "reqd": 1
-        },
-        {
-            "fieldname": "status",
-            "label": "Status",
-            "fieldtype": "Select",
-            "options": "Queued\nProcessing\nCompleted\nFailed",
-            "default": "Queued"
-        },
-        {
-            "fieldname": "retry_count",
-            "label": "Retry Count",
-            "fieldtype": "Int",
-            "default": "0"
-        },
-        {
-            "fieldname": "error",
-            "label": "Error",
-            "fieldtype": "Long Text",
-            "read_only": 1
-        },
-        {
-            "fieldname": "response",
-            "label": "Response",
-            "fieldtype": "Code",
-            "read_only": 1
-        },
-        {
-            "fieldname": "completion_time",
-            "label": "Completion Time",
-            "fieldtype": "Datetime",
-            "read_only": 1
-        }
-    ]
-} 
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-11-27 13:50:46.698118",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "invoice",
+  "status",
+  "retry_count",
+  "error",
+  "column_break_ezbw",
+  "response",
+  "completion_time"
+ ],
+ "fields": [
+  {
+   "fieldname": "invoice",
+   "fieldtype": "Link",
+   "label": "Invoice",
+   "options": "Sales Invoice"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Queued\nProcessing\nCompleted\nFailed"
+  },
+  {
+   "fieldname": "retry_count",
+   "fieldtype": "Int",
+   "label": "Retry Count"
+  },
+  {
+   "fieldname": "error",
+   "fieldtype": "Long Text",
+   "label": "Error"
+  },
+  {
+   "fieldname": "column_break_ezbw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "response",
+   "fieldtype": "Code",
+   "label": "Response",
+   "options": "Response from Fiscal device"
+  },
+  {
+   "fieldname": "completion_time",
+   "fieldtype": "Datetime",
+   "label": "Completion Time"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-11-27 14:41:11.928889",
+ "modified_by": "Administrator",
+ "module": "AQIQ Shabbiri TIMS",
+ "name": "Fiscal Queue",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
