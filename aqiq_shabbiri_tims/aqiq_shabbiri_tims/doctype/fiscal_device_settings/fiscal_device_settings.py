@@ -59,81 +59,58 @@ class FiscalDeviceSettings(Document):
         else:
             frappe.throw(_(message))
 
-    def sign_invoice(self, invoice_data, is_inclusive=True):
+    def sign_invoice(self, invoice_data, is_inclusive=True, retries=3):
         """
         Sign an invoice with the fiscal device
         Args:
             invoice_data (dict): Invoice data to be signed
             is_inclusive (bool): Whether prices are VAT inclusive
+            retries (int): Number of retry attempts
         """
         if not self.enable_device:
-            self.throw_error(_("Fiscal Device is not enabled"))
+            frappe.throw(_("Fiscal Device is not enabled"))
 
         if not self.device_ip or not self.port:
-            self.throw_error(_("Device IP and Port must be configured"))
+            frappe.throw(_("Device IP and Port must be configured"))
 
-        # Determine endpoint based on VAT inclusion
         endpoint = "invoice+1" if is_inclusive else "invoice+2"
         url = f"http://{self.device_ip}:{self.port}/api/sign?{endpoint}"
 
-        # Log the request payload for debugging
-        frappe.logger().debug(f"Fiscal Device Request URL: {url}")
-        frappe.logger().debug(f"Fiscal Device Request Payload: {invoice_data}")
-
-        try:
-            response = requests.post(
-                url=url,
-                headers=self.get_api_headers(),
-                json=invoice_data,
-                timeout=30
-            )
-
-            # Log the raw response
-            frappe.logger().debug(f"Fiscal Device Response Status: {response.status_code}")
-            frappe.logger().debug(f"Fiscal Device Response Text: {response.text}")
-
-            if response.status_code == 200:
-                return response.json()
-            else:
-                error_message = ""
-                try:
-                    # Try to parse JSON response
-                    error_data = response.json()
-                    error_message = error_data.get('description', '')
-                except:
-                    # If JSON parsing fails, get raw text
-                    error_message = response.text
-
-                # Log the error details
-                frappe.logger().error(f"""
-                    Fiscal Device Error:
-                    Status Code: {response.status_code}
-                    URL: {url}
-                    Headers: {self.get_api_headers()}
-                    Payload: {invoice_data}
-                    Response: {error_message}
-                """)
-
-                self.throw_error(
-                    _("Failed to sign invoice. Status Code: {0}. Details: {1}").format(
-                        response.status_code, error_message or "No error details available"
-                    ),
-                    f"""
-                    URL: {url}
-                    Payload: {invoice_data}
-                    Response: {error_message}
-                    """
+        for attempt in range(retries):
+            try:
+                response = requests.post(
+                    url=url,
+                    headers=self.get_api_headers(),
+                    json=invoice_data,
+                    timeout=30
                 )
 
-        except requests.exceptions.ConnectionError as e:
-            frappe.logger().error(f"Fiscal Device Connection Error: {str(e)}")
-            self.throw_error(_("Connection error: Could not connect to fiscal device"))
-        except requests.exceptions.Timeout as e:
-            frappe.logger().error(f"Fiscal Device Timeout Error: {str(e)}")
-            self.throw_error(_("Connection timeout: Fiscal device took too long to respond"))
-        except Exception as e:
-            frappe.logger().error(f"Fiscal Device Unexpected Error: {str(e)}")
-            self.throw_error(_("Error signing invoice: {0}").format(str(e)))
+                frappe.logger().debug(f"Fiscal Device Response Status: {response.status_code}")
+                frappe.logger().debug(f"Fiscal Device Response Text: {response.text}")
+
+                if response.status_code == 200:
+                    return response.json()
+                else:
+                    error_message = response.json().get('description', response.text)
+                    frappe.logger().error(f"Fiscal Device Error: {error_message}")
+                    if attempt < retries - 1:
+                        frappe.logger().info(f"Retrying fiscalization (attempt {attempt + 2}/{retries})")
+                        continue
+                    else:
+                        frappe.throw(
+                            _("Failed to sign invoice after {0} attempts. Last error: {1}").format(retries, error_message)
+                        )
+
+            except requests.exceptions.RequestException as e:
+                frappe.logger().error(f"Fiscal Device Request Error: {str(e)}")
+                if attempt < retries - 1:
+                    frappe.logger().info(f"Retrying fiscalization (attempt {attempt + 2}/{retries})")
+                    continue
+                else:
+                    frappe.throw(_("Failed to connect to fiscal device after {0} attempts.").format(retries))
+            except Exception as e:
+                frappe.logger().error(f"Unexpected Error: {str(e)}")
+                frappe.throw(_("Unexpected error during fiscalization: {0}").format(str(e)))
 
     def format_invoice_data(self, invoice, items, is_inclusive=True):
         """
@@ -156,7 +133,7 @@ class FiscalDeviceSettings(Document):
         payload = {
             "invoice_date": invoice_date,
             "invoice_number": invoice.name,
-            "invoice_pin": self.control_unit_pin,  # Mandatory field
+            "invoice_pin": self.control_unit_pin,  # Ensure this is correct and valid
             "customer_pin": invoice.tax_id or "",
             "customer_exid": invoice.custom_tax_exemption_id or "",
             "grand_total": grand_total,
@@ -174,7 +151,7 @@ class FiscalDeviceSettings(Document):
             for item in items:
                 items_array.append({
                     "name": item.item_name,
-                    "hscode": item.get('hscode', ''),
+                    "hscode": item.get('hscode', '') or '',  # Ensure hscode is a string
                     "brut_price": "{:.2f}".format(flt(item.amount, 2)),
                     "quantity": "{:.2f}".format(flt(item.qty, 2))
                 })
@@ -186,7 +163,7 @@ class FiscalDeviceSettings(Document):
                 qty = "{:.2f}".format(flt(item.qty, 2))
                 rate = "{:.2f}".format(flt(item.rate, 2))
                 amount = "{:.2f}".format(flt(item.amount, 2))
-                hscode = item.get('hscode', '')
+                hscode = item.get('hscode', '') or ''  # Ensure hscode is a string
                 
                 # Format: "{hscode}{Description} {quantity} {unitNetto} {sumAmount}"
                 item_str = f"{hscode}{item.item_name} {qty} {rate} {amount}"
