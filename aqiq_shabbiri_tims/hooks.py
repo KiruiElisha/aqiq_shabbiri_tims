@@ -257,8 +257,8 @@ fixtures = [
 # Scheduled task to retry failed fiscalizations
 scheduler_events = {
     "cron": {
-        "*/15 * * * *": [  # Every 15 minutes
-            "aqiq_shabbiri_tims.utils.fiscal_queue.process_failed_queue"
+        "*/1 * * * *": [  # Every 1 minute
+            "aqiq_shabbiri_tims.aqiq_shabbiri_tims.utils.fiscal_queue.process_failed_queue"
         ]
     }
 }

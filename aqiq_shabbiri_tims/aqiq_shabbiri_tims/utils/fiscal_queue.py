@@ -19,16 +19,18 @@ def enqueue_fiscalization(invoice_name, retry_count=0):
             "creation": datetime.now()
         }).insert(ignore_permissions=True)
         
-        # Enqueue the job
+        # Enqueue the job with correct path and parameters
         enqueue(
-            method="aqiq_shabbiri_tims.utils.fiscal_queue.process_fiscalization",
-            queue="short" if retry_count == 0 else "long",
+            method="aqiq_shabbiri_tims.aqiq_shabbiri_tims.utils.fiscal_queue.process_fiscalization",  # Full path
+            queue="default",  # Use default queue
             timeout=300,
-            event="fiscal_device",
-            queue_doc=queue_doc.name,
-            invoice_name=invoice_name,
-            retry_count=retry_count,
-            now=retry_count == 0  # Immediate processing for first attempt
+            job_name=f"fiscal_invoice_{invoice_name}",  # Unique job name
+            kwargs={  # Use kwargs for parameters
+                "queue_doc": queue_doc.name,
+                "invoice_name": invoice_name,
+                "retry_count": retry_count
+            },
+            is_async=True  # Make sure it runs asynchronously
         )
         
     except Exception as e:
@@ -43,9 +45,13 @@ def process_fiscalization(queue_doc, invoice_name, retry_count=0):
         if not frappe.db.exists("Sales Invoice", invoice_name):
             raise Exception("Invoice not found")
             
+        # Get fresh copy of queue doc
         queue = frappe.get_doc("Fiscal Queue", queue_doc)
-        queue.status = "Processing"
-        queue.save()
+        if queue.status == "Completed":
+            return
+            
+        queue.db_set('status', 'Processing')
+        frappe.db.commit()  # Commit status change
         
         invoice = frappe.get_doc("Sales Invoice", invoice_name)
         fiscal_settings = frappe.get_doc("Fiscal Device Settings")
@@ -65,10 +71,9 @@ def process_fiscalization(queue_doc, invoice_name, retry_count=0):
         invoice.db_set('custom_is_fiscalized', 1)
         
         # Update queue status
-        queue.status = "Completed"
-        queue.response = frappe.as_json(response)
-        queue.completion_time = datetime.now()
-        queue.save()
+        queue.db_set('status', 'Completed')
+        queue.db_set('response', frappe.as_json(response))
+        queue.db_set('completion_time', datetime.now())
         
         frappe.db.commit()
         
@@ -79,23 +84,21 @@ def process_fiscalization(queue_doc, invoice_name, retry_count=0):
             # Schedule retry after exponential backoff
             delay = 300 * (2 ** retry_count)  # 5min, 10min, 20min
             
-            queue.status = "Failed"
-            queue.error = str(e)
-            queue.save()
+            queue.db_set('status', 'Failed')
+            queue.db_set('error', str(e))
+            frappe.db.commit()
             
             # Enqueue retry
             enqueue_fiscalization(invoice_name, retry_count + 1)
         else:
-            queue.status = "Failed"
-            queue.error = str(e)
-            queue.save()
+            queue.db_set('status', 'Failed')
+            queue.db_set('error', str(e))
+            frappe.db.commit()
             
             frappe.log_error(
                 title=_("Fiscalization Failed After Retries"),
                 message=f"Invoice: {invoice_name}\nError: {str(e)}"
             )
-        
-        frappe.db.commit()
 
 def process_failed_queue():
     """Process failed fiscalizations"""

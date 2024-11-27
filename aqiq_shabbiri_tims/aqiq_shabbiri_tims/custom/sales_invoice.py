@@ -1,6 +1,6 @@
 import frappe
 from frappe import _
-from aqiq_shabbiri_tims.utils.fiscal_queue import enqueue_fiscalization
+from ..utils.fiscal_queue import enqueue_fiscalization
 
 def validate_fiscal_fields(doc):
     """Validate fiscal fields before submission"""
