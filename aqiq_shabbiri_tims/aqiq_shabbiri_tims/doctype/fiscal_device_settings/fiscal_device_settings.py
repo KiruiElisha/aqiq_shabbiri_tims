@@ -220,15 +220,16 @@ def test_connection(device_ip, port):
         if response.status_code == 200:
             response_data = response.json()
             if response_data.get('cu_serial_number'):
+                
                 # Update the settings document with actual device details
-                settings.db_set('control_unit_serial', response_data.get('cu_serial_number'))
+                # settings.db_set('control_unit_serial', response_data.get('cu_serial_number'))
                 
                 # Extract the actual device PIN from the successful response if available
-                if response_data.get('invoice_pin'):
-                    settings.db_set('control_unit_pin', response_data.get('invoice_pin'))
+                # if response_data.get('invoice_pin'):
+                #     settings.db_set('control_unit_pin', response_data.get('invoice_pin'))
                 
                 # Commit the transaction
-                frappe.db.commit()
+                # frappe.db.commit()
                 
                 return {
                     'success': True,

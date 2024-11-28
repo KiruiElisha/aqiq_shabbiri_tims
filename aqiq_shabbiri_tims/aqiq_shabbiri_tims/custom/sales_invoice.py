@@ -54,8 +54,8 @@ def fiscalize_submitted_invoice(invoice_name):
             frappe.throw(_("Invoice is already fiscalized"))
 
         fiscal_settings = frappe.get_doc("Fiscal Device Settings")
-        if not fiscal_settings.enable_device or not fiscal_settings.fiscalize_invoices_on_submit:
-            frappe.throw(_("Fiscal Device is not enabled in settings or fiscalization on submit is not enabled"))
+        if not fiscal_settings.enable_device:
+            frappe.throw(_("Fiscal Device is not enabled in settings"))
 
         # Directly fiscalize
         on_submit(invoice, None)
