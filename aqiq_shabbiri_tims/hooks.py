@@ -234,10 +234,13 @@ fixtures = [
                 "name",
                 "in",
                 [
-                    "Sales Invoice-custom_is_fiscalized",
+                    "Sales Invoice-custom_fiscal_device_details",
                     "Sales Invoice-custom_fiscal_invoice_number",
                     "Sales Invoice-custom_fiscal_verification_url",
-                    "Sales Invoice-custom_tax_exemption_id"                    
+                    "Sales Invoice-custom_is_fiscalized",
+                    "Sales Invoice-custom_tims",
+                    "Sales Invoice-custom_tax_exemption_id",
+                    "Item-custom_hscode"
                 ]
             ]
         ]
