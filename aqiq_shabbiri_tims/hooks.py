@@ -124,7 +124,7 @@ app_license = "mit"
 
 doc_events = {
     "Sales Invoice": {        
-        "on_submit": "aqiq_shabbiri_tims.custom.sales_invoice.on_submit"
+        "on_submit": "aqiq_shabbiri_tims.aqiq_shabbiri_tims.custom.sales_invoice.on_submit"
     }
 }
 
