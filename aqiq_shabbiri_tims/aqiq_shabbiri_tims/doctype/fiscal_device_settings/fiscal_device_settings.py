@@ -8,8 +8,6 @@ from requests.exceptions import RequestException
 import json
 from frappe import _
 from frappe.utils import flt
-from datetime import datetime
-
 class FiscalDeviceSettings(Document):
     def get_dashboard_data(self):
         return {
@@ -128,43 +126,47 @@ class FiscalDeviceSettings(Document):
         else:
             invoice_date = invoice.posting_date.strftime("%d_%m_%Y")
 
-        # Calculate totals - ensure 2 decimal places
+        # Calculate totals with exactly 2 decimal places
         grand_total = "{:.2f}".format(flt(invoice.grand_total, 2))
         net_total = "{:.2f}".format(flt(invoice.net_total, 2))
         tax_total = "{:.2f}".format(flt(invoice.total_taxes_and_charges, 2))
         discount_total = "{:.2f}".format(flt(invoice.discount_amount, 2))
 
-        # Base payload
+        # Format items list according to documentation
+        items_list = []
+        for item in items:
+            # Get HS code, default to empty if not available
+            hscode = item.get('custom_hs_code', '')
+            
+            # Calculate unit price (unitNetto)
+            unit_price = "{:.2f}".format(flt(item.amount / item.qty if item.qty else 0, 2))
+            
+            # Format quantity and total amount with exactly 2 decimal places
+            quantity = "{:.2f}".format(flt(item.qty, 2))
+            total_amount = "{:.2f}".format(flt(item.amount, 2))
+            
+            # Format item string according to documentation
+            # Note the space at the start and max length of 512 symbols
+            item_string = f" {hscode}{item.item_name} {quantity} {unit_price} {total_amount}"
+            if len(item_string) > 512:
+                item_string = item_string[:512]
+            items_list.append(item_string)
+
+        # Construct payload according to documentation
         payload = {
             "invoice_date": invoice_date,
             "invoice_number": invoice.name,
-            "invoice_pin": self.control_unit_pin,  # Ensure this is correct and valid
+            "invoice_pin": self.control_unit_pin,
             "customer_pin": invoice.tax_id or "",
             "customer_exid": invoice.custom_tax_exemption_id or "",
             "grand_total": grand_total,
-            "net_subtotal": net_total if is_inclusive else "",
+            "net_subtotal": net_total if is_inclusive else "",  # Only for inclusive VAT
             "tax_total": tax_total,
             "net_discount_total": discount_total,
-            "sel_currency": invoice.currency,  # Use currency from invoice
-            "rel_doc_number": invoice.return_against or ""
+            "sel_currency": invoice.currency,
+            "rel_doc_number": invoice.return_against or "",
+            "items_list": items_list
         }
-
-        # Format items based on VAT inclusion
-        items_array = []
-        for item in items:
-            hscode = item.get('custom_hs_code', '0000.00.00')  # Default HS code if missing
-            vat_rate = self.get_vat_rate(item)  # Fetch VAT rate from item tax template
-            brut_price = "{:.2f}".format(flt(item.amount, 2))
-            quantity = "{:.2f}".format(flt(item.qty, 2))
-
-            items_array.append({
-                "name": item.item_name,
-                "hscode": hscode,
-                "vat_rate": vat_rate,
-                "brut_price": brut_price,
-                "quantity": quantity
-            })
-        payload["items_array"] = items_array
 
         return payload
 
