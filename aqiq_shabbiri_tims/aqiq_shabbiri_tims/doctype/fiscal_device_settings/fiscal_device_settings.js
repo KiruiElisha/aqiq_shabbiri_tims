@@ -38,11 +38,11 @@ function test_device_connection(frm) {
             frm.dashboard.reset();
             if (r.message.success) {
                 // Store the serial number if provided
-                if (r.message.serial_number && !frm.doc.control_unit_serial) {
-                    frappe.model.set_value(frm.doctype, frm.docname, 
-                        'control_unit_serial', r.message.serial_number);
-                    frm.save();
-                }
+                // if (r.message.serial_number && !frm.doc.control_unit_serial) {
+                //     frappe.model.set_value(frm.doctype, frm.docname, 
+                //         'control_unit_serial', r.message.serial_number);
+                //     frm.save();
+                // }
                 
                 frm.dashboard.set_headline(
                     `<div class="indicator green">
