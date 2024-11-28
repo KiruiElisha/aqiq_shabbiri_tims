@@ -11,12 +11,12 @@
   "column_break_rfyg",
   "enable_device",
   "debug_mode",
+  "bearer_token",
+  "fiscalize_invoices_on_submit",
   "control_unit_settings_section",
   "control_unit_serial",
   "column_break_dtuy",
-  "control_unit_pin",
-  "vat_settings_section",
-  "vat_rates"
+  "control_unit_pin"
  ],
  "fields": [
   {
@@ -65,28 +65,29 @@
    "label": "Control Unit PIN"
   },
   {
-   "fieldname": "vat_settings_section",
-   "fieldtype": "Section Break",
-   "label": "VAT Settings"
-  },
-  {
-   "fieldname": "vat_rates",
-   "fieldtype": "Table",
-   "label": "VAT Rates",
-   "options": "Fiscal VAT Rate"
-  },
-  {
    "default": "0",
    "description": "Enable to see detailed error messages",
    "fieldname": "debug_mode",
    "fieldtype": "Check",
    "label": "Debug Mode"
+  },
+  {
+   "default": "Basic ZxZoaZMUQbUJDljA7kTExQ==2023",
+   "fieldname": "bearer_token",
+   "fieldtype": "Data",
+   "label": "Bearer Token"
+  },
+  {
+   "default": "0",
+   "fieldname": "fiscalize_invoices_on_submit",
+   "fieldtype": "Check",
+   "label": "Fiscalize Invoices On Submit"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-11-27 14:36:52.271633",
+ "modified": "2024-11-28 07:59:57.783035",
  "modified_by": "Administrator",
  "module": "AQIQ Shabbiri TIMS",
  "name": "Fiscal Device Settings",

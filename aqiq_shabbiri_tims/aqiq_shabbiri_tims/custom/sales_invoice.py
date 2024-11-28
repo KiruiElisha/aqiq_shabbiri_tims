@@ -8,9 +8,11 @@ def validate_fiscal_fields(doc):
         frappe.throw(_("Return Against invoice is mandatory for Credit Notes"))
 
 def on_submit(doc, method):
-    """Directly fiscalize invoice on submit"""
+    """Directly fiscalize invoice on submit if enabled"""
     if not doc.custom_is_fiscalized and not doc.is_return:
         fiscal_settings = frappe.get_doc("Fiscal Device Settings")
+        if not fiscal_settings.enable_device or not fiscal_settings.fiscalize_invoices_on_submit:
+            return  # Exit if device is not enabled or fiscalization on submit is not enabled
         if not fiscal_settings.enable_device:
             frappe.throw(_("Fiscal Device is not enabled in settings"))
 
@@ -52,8 +54,8 @@ def fiscalize_submitted_invoice(invoice_name):
             frappe.throw(_("Invoice is already fiscalized"))
 
         fiscal_settings = frappe.get_doc("Fiscal Device Settings")
-        if not fiscal_settings.enable_device:
-            frappe.throw(_("Fiscal Device is not enabled in settings"))
+        if not fiscal_settings.enable_device or not fiscal_settings.fiscalize_invoices_on_submit:
+            frappe.throw(_("Fiscal Device is not enabled in settings or fiscalization on submit is not enabled"))
 
         # Directly fiscalize
         on_submit(invoice, None)

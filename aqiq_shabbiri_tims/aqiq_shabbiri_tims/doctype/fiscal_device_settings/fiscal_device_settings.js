@@ -7,11 +7,6 @@ frappe.ui.form.on('Fiscal Device Settings', {
         frm.add_custom_button(__('Test Connection'), function() {
             test_device_connection(frm);
         }, __('Device Operations'));
-
-        // Test connection on load if device is enabled
-        if (frm.doc.enable_device) {
-            test_device_connection(frm);
-        }
     }
 });
 

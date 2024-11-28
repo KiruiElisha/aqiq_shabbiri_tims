@@ -48,7 +48,7 @@ class FiscalDeviceSettings(Document):
         """Get the required headers for API calls"""
         return {
             'Content-Type': 'application/json',
-            'Authorization': 'Basic ZxZoaZMUQbUJDljA7kTExQ==2023'
+            'Authorization': self.bearer_token  # Fetch bearer token from the doctype
         }
 
     def throw_error(self, message, details=None):
@@ -140,37 +140,39 @@ class FiscalDeviceSettings(Document):
             "net_subtotal": net_total if is_inclusive else "",
             "tax_total": tax_total,
             "net_discount_total": discount_total,
-            "sel_currency": "KSH",
+            "sel_currency": "KES",
             "rel_doc_number": invoice.return_against or ""
         }
 
         # Format items based on VAT inclusion
-        if is_inclusive:
-            # Use items_array for inclusive VAT
-            items_array = []
-            for item in items:
-                items_array.append({
-                    "name": item.item_name,
-                    "hscode": item.get('hscode', '') or '',  # Ensure hscode is a string
-                    "brut_price": "{:.2f}".format(flt(item.amount, 2)),
-                    "quantity": "{:.2f}".format(flt(item.qty, 2))
-                })
-            payload["items_array"] = items_array
-        else:
-            # Use items_list for exclusive VAT
-            items_list = []
-            for item in items:
-                qty = "{:.2f}".format(flt(item.qty, 2))
-                rate = "{:.2f}".format(flt(item.rate, 2))
-                amount = "{:.2f}".format(flt(item.amount, 2))
-                hscode = item.get('hscode', '') or ''  # Ensure hscode is a string
-                
-                # Format: "{hscode}{Description} {quantity} {unitNetto} {sumAmount}"
-                item_str = f"{hscode}{item.item_name} {qty} {rate} {amount}"
-                items_list.append(item_str[:512])
-            payload["items_list"] = items_list
+        items_array = []
+        for item in items:
+            hscode = item.get('custom_hs_code', '0000.00.00')  # Default HS code if missing
+            vat_rate = self.get_vat_rate(item)  # Fetch VAT rate from item tax template
+            brut_price = "{:.2f}".format(flt(item.amount, 2))
+            quantity = "{:.2f}".format(flt(item.qty, 2))
+
+            items_array.append({
+                "name": item.item_name,
+                "hscode": hscode,
+                "vat_rate": vat_rate,
+                "brut_price": brut_price,
+                "quantity": quantity
+            })
+        payload["items_array"] = items_array
 
         return payload
+
+    def get_vat_rate(self, item):
+        """Fetch VAT rate from item tax template"""
+        tax_rate = 16  # Default to 16% if not found
+        if item.item_tax_template:
+            tax_template = frappe.get_doc("Item Tax Template", item.item_tax_template)
+            for tax in tax_template.taxes:
+                if tax.tax_type == "VAT - SHKL":
+                    tax_rate = tax.tax_rate
+                    break
+        return tax_rate
 
 @frappe.whitelist()
 def test_connection(device_ip, port):
