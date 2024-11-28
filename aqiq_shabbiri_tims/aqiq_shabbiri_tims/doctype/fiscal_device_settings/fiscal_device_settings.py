@@ -8,6 +8,8 @@ from requests.exceptions import RequestException
 import json
 from frappe import _
 from frappe.utils import flt
+from datetime import datetime
+
 class FiscalDeviceSettings(Document):
     def get_dashboard_data(self):
         return {
@@ -120,8 +122,11 @@ class FiscalDeviceSettings(Document):
             items: List of invoice items
             is_inclusive: Whether prices are VAT inclusive
         """
-        # Format date as required (DD_MM_YYYY)
-        invoice_date = invoice.posting_date.strftime("%d_%m_%Y")
+        # Convert posting_date to datetime if it's a string
+        if isinstance(invoice.posting_date, str):
+            invoice_date = datetime.strptime(invoice.posting_date, "%Y-%m-%d").strftime("%d_%m_%Y")
+        else:
+            invoice_date = invoice.posting_date.strftime("%d_%m_%Y")
 
         # Calculate totals - ensure 2 decimal places
         grand_total = "{:.2f}".format(flt(invoice.grand_total, 2))
@@ -140,7 +145,7 @@ class FiscalDeviceSettings(Document):
             "net_subtotal": net_total if is_inclusive else "",
             "tax_total": tax_total,
             "net_discount_total": discount_total,
-            "sel_currency": "KES",
+            "sel_currency": invoice.currency,  # Use currency from invoice
             "rel_doc_number": invoice.return_against or ""
         }
 
