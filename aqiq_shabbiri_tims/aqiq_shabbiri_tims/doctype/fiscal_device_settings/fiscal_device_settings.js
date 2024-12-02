@@ -11,6 +11,7 @@ frappe.ui.form.on('Fiscal Device Settings', {
 });
 
 function test_device_connection(frm) {
+    // Validate required fields
     if (!frm.doc.device_ip || !frm.doc.port) {
         frm.dashboard.reset();
         frm.dashboard.set_headline(
@@ -18,6 +19,11 @@ function test_device_connection(frm) {
                 ${__('Device IP and Port not configured')}
             </div>`
         );
+        frappe.msgprint({
+            title: __('Configuration Required'),
+            message: __('Please configure Device IP and Port before testing connection'),
+            indicator: 'red'
+        });
         return;
     }
     
@@ -36,32 +42,45 @@ function test_device_connection(frm) {
         },
         callback: function(r) {
             frm.dashboard.reset();
-            if (r.message.success) {
-                // Store the serial number if provided
-                // if (r.message.serial_number && !frm.doc.control_unit_serial) {
-                //     frappe.model.set_value(frm.doctype, frm.docname, 
-                //         'control_unit_serial', r.message.serial_number);
-                //     frm.save();
-                // }
-                
+            if (r.message && r.message.success) {
                 frm.dashboard.set_headline(
                     `<div class="indicator green">
                         ${r.message.message || __('Device Connected')}
                     </div>`
                 );
+                
+                frappe.show_alert({
+                    message: __('Connection test successful'),
+                    indicator: 'green'
+                }, 5);
             } else {
+                const error_msg = r.message ? r.message.error : __('Could not connect to device');
                 frm.dashboard.set_headline(
                     `<div class="indicator red">
-                        ${__('Connection Failed')}: ${r.message.error || __('Could not connect to device')}
+                        ${__('Connection Failed')}: ${error_msg}
                     </div>`
                 );
-                // Also show as a message for better visibility
+                
                 frappe.msgprint({
                     title: __('Connection Failed'),
-                    message: r.message.error || __('Could not connect to device'),
+                    message: error_msg,
                     indicator: 'red'
                 });
             }
+        },
+        error: function(r) {
+            frm.dashboard.reset();
+            frm.dashboard.set_headline(
+                `<div class="indicator red">
+                    ${__('Connection Error')}
+                </div>`
+            );
+            
+            frappe.msgprint({
+                title: __('Connection Error'),
+                message: __('An error occurred while testing the connection'),
+                indicator: 'red'
+            });
         }
     });
 }
