@@ -6,6 +6,8 @@ from frappe.model.document import Document
 import requests
 from requests.exceptions import RequestException
 import json
+import datetime
+
 from frappe import _
 from frappe.utils import flt
 class FiscalDeviceSettings(Document):
@@ -129,44 +131,60 @@ class FiscalDeviceSettings(Document):
         # Calculate totals with exactly 2 decimal places
         grand_total = "{:.2f}".format(flt(invoice.grand_total, 2))
         net_total = "{:.2f}".format(flt(invoice.net_total, 2))
-        tax_total = "{:.2f}".format(flt(invoice.total_taxes_and_charges, 2))
-        discount_total = "{:.2f}".format(flt(invoice.discount_amount, 2))
+        tax_total = "{:.2f}".format(flt(invoice.total_taxes_and_charges or 0, 2))
+        discount_total = "{:.2f}".format(flt(invoice.discount_amount or 0, 2))
 
         # Format items list according to documentation
         items_list = []
         for item in items:
             # Get HS code, default to empty if not available
-            hscode = item.get('custom_hs_code', '')
+            hscode = (item.get('custom_hs_code', '') or '').strip()
+            if hscode:
+                hscode = f"{hscode} "  # Add space after HS code if present
             
             # Calculate unit price (unitNetto)
-            unit_price = "{:.2f}".format(flt(item.amount / item.qty if item.qty else 0, 2))
+            unit_price = "{:.2f}".format(flt(item.rate, 2))
             
             # Format quantity and total amount with exactly 2 decimal places
             quantity = "{:.2f}".format(flt(item.qty, 2))
             total_amount = "{:.2f}".format(flt(item.amount, 2))
             
             # Format item string according to documentation
-            # Note the space at the start and max length of 512 symbols
             item_string = f" {hscode}{item.item_name} {quantity} {unit_price} {total_amount}"
             if len(item_string) > 512:
                 item_string = item_string[:512]
             items_list.append(item_string)
+
+        # Handle customer PIN and exemption ID
+        customer_pin = ""
+        customer_exid = ""
+        
+        if invoice.tax_id:
+            # Clean up tax ID - remove spaces and special characters
+            customer_pin = ''.join(filter(str.isalnum, invoice.tax_id))
+            if len(customer_pin) < 1:
+                customer_pin = ""
+        
+        if hasattr(invoice, 'custom_tax_exemption_id') and invoice.custom_tax_exemption_id:
+            customer_exid = invoice.custom_tax_exemption_id.strip()
 
         # Construct payload according to documentation
         payload = {
             "invoice_date": invoice_date,
             "invoice_number": invoice.name,
             "invoice_pin": self.control_unit_pin,
-            "customer_pin": invoice.tax_id or "",
-            "customer_exid": invoice.custom_tax_exemption_id or "",
+            "customer_pin": customer_pin,
+            "customer_exid": customer_exid,
             "grand_total": grand_total,
-            "net_subtotal": net_total if is_inclusive else "",  # Only for inclusive VAT
+            "net_subtotal": net_total if is_inclusive else "",
             "tax_total": tax_total,
             "net_discount_total": discount_total,
-            "sel_currency": invoice.currency,
+            "sel_currency": "KSH",  # Hardcoded as per examples
             "rel_doc_number": invoice.return_against or "",
             "items_list": items_list
         }
+
+        return payload
 
         return payload
 
