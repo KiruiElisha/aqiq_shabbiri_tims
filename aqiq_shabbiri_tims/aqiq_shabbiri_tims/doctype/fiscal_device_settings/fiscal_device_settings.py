@@ -48,13 +48,9 @@ class FiscalDeviceSettings(Document):
 
     def get_api_headers(self):
         """Get the required headers for API calls"""
-        if not self.bearer_token:
-            self.bearer_token = "Basic ZxZoaZMUQbUJDljA7kTExQ==2023"
-            self.save()
-        
         return {
             'Content-Type': 'application/json',
-            'Authorization': self.bearer_token
+            'Authorization': self.bearer_token  # Fetch bearer token from the doctype
         }
 
     def throw_error(self, message, details=None):
@@ -126,88 +122,55 @@ class FiscalDeviceSettings(Document):
             items: List of invoice items
             is_inclusive: Whether prices are VAT inclusive
         """
-        try:
-            # Convert posting_date to datetime if it's a string
-            if isinstance(invoice.posting_date, str):
-                invoice_date = datetime.datetime.strptime(invoice.posting_date, "%Y-%m-%d").strftime("%d_%m_%Y")
-            else:
-                invoice_date = invoice.posting_date.strftime("%d_%m_%Y")
+        # Convert posting_date to datetime if it's a string
+        if isinstance(invoice.posting_date, str):
+            invoice_date = datetime.strptime(invoice.posting_date, "%Y-%m-%d").strftime("%d_%m_%Y")
+        else:
+            invoice_date = invoice.posting_date.strftime("%d_%m_%Y")
 
-            # Calculate totals with exactly 2 decimal places
-            grand_total = "{:.2f}".format(flt(invoice.grand_total, 2))
-            net_total = "{:.2f}".format(flt(invoice.net_total, 2))
-            tax_total = "{:.2f}".format(flt(invoice.total_taxes_and_charges or 0, 2))
-            discount_total = "{:.2f}".format(flt(invoice.discount_amount or 0, 2))
+        # Calculate totals with exactly 2 decimal places
+        grand_total = "{:.2f}".format(flt(invoice.grand_total, 2))
+        net_total = "{:.2f}".format(flt(invoice.net_total, 2))
+        tax_total = "{:.2f}".format(flt(invoice.total_taxes_and_charges, 2))
+        discount_total = "{:.2f}".format(flt(invoice.discount_amount, 2))
 
-            # Format items list according to documentation
-            items_list = []
-            for item in items:
-                # Get HS code, default to empty if not available
-                hscode = getattr(item, 'custom_hs_code', '') or ''
-                hscode = hscode.strip()
-                
-                # Calculate unit price and ensure it's not zero
-                quantity = flt(item.qty, 2)
-                if quantity <= 0:
-                    frappe.throw(_("Quantity must be greater than zero for item {0}").format(item.item_name))
-                
-                unit_price = flt(item.rate, 2)
-                if unit_price <= 0:
-                    frappe.throw(_("Unit price must be greater than zero for item {0}").format(item.item_name))
-                
-                # Format the item string with proper spacing
-                item_string = " "  # Start with a space as per documentation
-                if hscode:
-                    item_string += f"{hscode} "
-                
-                item_string += f"{item.item_name} {quantity:.2f} {unit_price:.2f} {flt(item.amount, 2):.2f}"
-                
-                if len(item_string) > 512:
-                    item_string = item_string[:512]
-                items_list.append(item_string)
+        # Format items list according to documentation
+        items_list = []
+        for item in items:
+            # Get HS code, default to empty if not available
+            hscode = item.get('custom_hs_code', '')
+            
+            # Calculate unit price (unitNetto)
+            unit_price = "{:.2f}".format(flt(item.amount / item.qty if item.qty else 0, 2))
+            
+            # Format quantity and total amount with exactly 2 decimal places
+            quantity = "{:.2f}".format(flt(item.qty, 2))
+            total_amount = "{:.2f}".format(flt(item.amount, 2))
+            
+            # Format item string according to documentation
+            # Note the space at the start and max length of 512 symbols
+            item_string = f" {hscode}{item.item_name} {quantity} {unit_price} {total_amount}"
+            if len(item_string) > 512:
+                item_string = item_string[:512]
+            items_list.append(item_string)
 
-            if not items_list:
-                frappe.throw(_("No items found in invoice"))
+        # Construct payload according to documentation
+        payload = {
+            "invoice_date": invoice_date,
+            "invoice_number": invoice.name,
+            "invoice_pin": self.control_unit_pin,
+            "customer_pin": invoice.tax_id or "",
+            "customer_exid": invoice.custom_tax_exemption_id or "",
+            "grand_total": grand_total,
+            "net_subtotal": net_total if is_inclusive else "",  # Only for inclusive VAT
+            "tax_total": tax_total,
+            "net_discount_total": discount_total,
+            "sel_currency": invoice.currency,
+            "rel_doc_number": invoice.return_against or "",
+            "items_list": items_list
+        }
 
-            # Handle customer PIN - must be valid format if provided
-            customer_pin = ""
-            if invoice.tax_id:
-                customer_pin = ''.join(filter(str.isalnum, invoice.tax_id.upper()))
-                if customer_pin and not customer_pin.startswith('P'):
-                    frappe.throw(_("Customer PIN must start with 'P' if provided"))
-
-            # Construct payload according to documentation
-            payload = {
-                "invoice_date": invoice_date,
-                "invoice_number": invoice.name,
-                "invoice_pin": self.control_unit_pin,
-                "customer_pin": customer_pin,
-                "customer_exid": (invoice.get('custom_tax_exemption_id') or "").strip(),
-                "grand_total": grand_total,
-                "net_subtotal": net_total if is_inclusive else "",
-                "tax_total": tax_total,
-                "net_discount_total": discount_total,
-                "sel_currency": "KSH",
-                "rel_doc_number": invoice.return_against or "",
-                "items_list": items_list
-            }
-
-            # Validate mandatory fields
-            if not self.control_unit_pin:
-                frappe.throw(_("Control Unit PIN is mandatory"))
-            if not payload["invoice_date"]:
-                frappe.throw(_("Invoice date is mandatory"))
-            if not payload["invoice_number"]:
-                frappe.throw(_("Invoice number is mandatory"))
-
-            return payload
-
-        except Exception as e:
-            frappe.log_error(
-                message=f"Error formatting invoice data: {str(e)}\nPayload: {locals().get('payload', 'N/A')}",
-                title="Fiscal Device Format Error"
-            )
-            raise
+        return payload
 
     def get_vat_rate(self, item):
         """Fetch VAT rate from item tax template"""
@@ -222,15 +185,19 @@ class FiscalDeviceSettings(Document):
 
 @frappe.whitelist()
 def test_connection(device_ip, port):
+    """Test connection to fiscal device with proper payload format"""
     try:
-        # Construct test URL - using the inclusive VAT endpoint
+        # Get settings doc for configuration values
+        settings = frappe.get_doc("Fiscal Device Settings")
+        
+        # Construct test URL with the correct endpoint for inclusive VAT
         url = f"http://{device_ip}:{port}/api/sign?invoice+1"
         
-        # Create a test payload matching the documentation example
+        # Create test payload using values from settings
         test_payload = {
             "invoice_date": frappe.utils.today().replace('-', '_'),
             "invoice_number": f"TEST_{frappe.utils.now_datetime().strftime('%H%M%S')}",
-            "invoice_pin": "P051201909L",
+            "invoice_pin": settings.control_unit_pin,  # Use PIN from settings
             "customer_pin": "",
             "customer_exid": "",
             "grand_total": "1.00",
@@ -240,36 +207,35 @@ def test_connection(device_ip, port):
             "sel_currency": "KSH",
             "rel_doc_number": "",
             "items_list": [
-                " TEST ITEM 1.00 1.00 1.00"  # Note the space at the start
+                " TEST ITEM 1.00 1.00 1.00"
             ]
         }
         
-        # Get settings doc for headers
-        settings = frappe.get_doc("Fiscal Device Settings")
+        # Get headers from settings
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': settings.bearer_token
+        }
+        
+        if settings.debug_mode:
+            frappe.logger().debug(f"Test Connection URL: {url}")
+            frappe.logger().debug(f"Test Payload: {json.dumps(test_payload, indent=2)}")
         
         # Make the API request
         response = requests.post(
             url=url,
-            headers=settings.get_api_headers(),
+            headers=headers,
             json=test_payload,
             timeout=10
         )
         
-        # Check response
+        if settings.debug_mode:
+            frappe.logger().debug(f"Response Status: {response.status_code}")
+            frappe.logger().debug(f"Response Text: {response.text}")
+        
         if response.status_code == 200:
             response_data = response.json()
             if response_data.get('cu_serial_number'):
-                
-                # Update the settings document with actual device details
-                # settings.db_set('control_unit_serial', response_data.get('cu_serial_number'))
-                
-                # Extract the actual device PIN from the successful response if available
-                # if response_data.get('invoice_pin'):
-                #     settings.db_set('control_unit_pin', response_data.get('invoice_pin'))
-                
-                # Commit the transaction
-                # frappe.db.commit()
-                
                 return {
                     'success': True,
                     'message': _('Connected to device {0}').format(response_data.get('cu_serial_number')),
@@ -278,10 +244,11 @@ def test_connection(device_ip, port):
             else:
                 return {
                     'success': False,
-                    'error': _('Invalid response from device: {0}').format(response_data.get('description', 'No description'))
+                    'error': _('Invalid response from device: {0}').format(
+                        response_data.get('description', 'No description provided')
+                    )
                 }
         else:
-            # Try to get error message from response
             try:
                 error_detail = response.json().get('description', '')
             except:
@@ -297,20 +264,19 @@ def test_connection(device_ip, port):
     except requests.exceptions.ConnectionError:
         return {
             'success': False,
-            'error': _('Could not connect to device at {0}:{1}').format(device_ip, port)
+            'error': _('Could not connect to device at {0}:{1}. Please check if the device is online.').format(
+                device_ip, port
+            )
         }
     except requests.exceptions.Timeout:
         return {
             'success': False,
-            'error': _('Connection timed out')
-        }
-    except json.JSONDecodeError:
-        return {
-            'success': False,
-            'error': _('Invalid JSON response from device')
+            'error': _('Connection timed out. Please check your network connection.')
         }
     except Exception as e:
+        if settings.debug_mode:
+            frappe.logger().error(f"Test Connection Error: {str(e)}")
         return {
             'success': False,
-            'error': str(e)
+            'error': _('Unexpected error: {0}').format(str(e))
         }
